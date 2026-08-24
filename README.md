@@ -1,4 +1,9 @@
-# auth-tasks-demo
+# Auth + Task Queue Demo
+
+![GitHub stars](https://img.shields.io/github/stars/ashishdangwal07/auth-tasks-demo?style=social)
+![GitHub license](https://img.shields.io/github/license/ashishdangwal07/auth-tasks-demo)
+![npm version](https://img.shields.io/badge/npm-v10.0.0-blue)
+
 # Auth + Task Queue Demo
 
 ## 📌 Overview
