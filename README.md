@@ -8,6 +8,12 @@
 Ye project ek simple **authentication system** aur **background task queue** dikhata hai.  
 User register hone ke baad tasks enqueue hote hain aur ek worker script unhe process karta hai.
 
+## 🌐 Live Demo
+https://auth-tasks-demo.onrender.com
+
+Note: free tier — first request may take 30-50 seconds if the service was idle.
+
+
 ## 📂 Folder Structure
 ```text
 .
