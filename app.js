@@ -13,6 +13,18 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.json({
+    status: "API is running",
+    endpoints: [
+      "POST /auth/register",
+      "POST /auth/login",
+      "GET /auth/profile",
+      "POST /auth/logout"
+    ]
+  });
+});
+
 const db = new Database('mydb.sqlite');
 
 // Users table

@@ -96,3 +96,12 @@ npm test
 ```
 
 The server reads `JWT_SECRET` from `.env` on startup. If it is missing, the app exits instead of using a fallback secret.
+
+## API Endpoints
+
+| Method | Path | Required body/headers | Returns |
+| --- | --- | --- | --- |
+| POST | `/auth/register` | JSON: `username`, `email`, `password` | Confirmation message and `userId` |
+| POST | `/auth/login` | JSON: `email`, `password` | JWT `token` |
+| GET | `/auth/profile` | `Authorization: Bearer <token>` | User `username` and `email` |
+| POST | `/auth/logout` | `Authorization: Bearer <token>` | Confirmation message |

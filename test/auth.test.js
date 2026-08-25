@@ -1,5 +1,6 @@
 const request = require("supertest");
 const { expect } = require("chai");
+const jwt = require("jsonwebtoken");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test_secret";
 const app = require("../app");
@@ -42,6 +43,76 @@ describe("JWT Auth API", () => {
 
     expect(res.status).to.equal(200);
     expect(res.body).to.have.property("token");
+  });
+
+  it("rejects login with a wrong password", async () => {
+    const username = unique("wrong-password");
+    const email = `${username}@example.com`;
+
+    await request(app)
+      .post("/auth/register")
+      .send({ username, email, password: "123456" });
+
+    const res = await request(app)
+      .post("/auth/login")
+      .send({ email, password: "654321" });
+
+    expect(res.status).to.equal(401);
+    expect(res.body.error).to.equal("Invalid credentials");
+  });
+
+  it("rejects registration with a duplicate email", async () => {
+    const username = unique("dup");
+    const email = `${username}@example.com`;
+
+    await request(app)
+      .post("/auth/register")
+      .send({ username, email, password: "123456" });
+
+    const res = await request(app)
+      .post("/auth/register")
+      .send({ username: unique("dup2"), email, password: "123456" });
+
+    expect(res.status).to.equal(400);
+    expect(res.body.error).to.equal("Email/Username already exists");
+  });
+
+  it("rejects an expired JWT on the profile route", async () => {
+    const token = jwt.sign({ email: "expired@example.com" }, process.env.JWT_SECRET, { expiresIn: -1 });
+
+    const res = await request(app)
+      .get("/auth/profile")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).to.equal(401);
+    expect(res.body.error).to.equal("Invalid token");
+  });
+
+  it("rejects a blacklisted JWT on the profile route", async () => {
+    const username = unique("logout");
+    const email = `${username}@example.com`;
+
+    await request(app)
+      .post("/auth/register")
+      .send({ username, email, password: "123456" });
+
+    const loginRes = await request(app)
+      .post("/auth/login")
+      .send({ email, password: "123456" });
+
+    const token = loginRes.body.token;
+    const logoutRes = await request(app)
+      .post("/auth/logout")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(logoutRes.status).to.equal(200);
+
+    const profileRes = await request(app)
+      .get("/auth/profile")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(profileRes.status).to.equal(401);
+    expect(profileRes.body.error).to.equal("Token expired");
   });
 
   it("returns the profile for a valid JWT", async () => {
