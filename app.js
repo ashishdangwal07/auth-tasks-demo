@@ -38,9 +38,15 @@ db.prepare(`
   )
 `).run();
 
-// Known limitation: this in-memory blacklist resets on server restart.
-// In production, use Redis or a database table with TTL expiration.
-const blacklist = new Set();
+// Token blacklist is persisted in SQLite so logouts continue to work across server restarts.
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS token_blacklist (
+    token TEXT PRIMARY KEY,
+    expires_at INTEGER NOT NULL
+  )
+`).run();
+db.prepare("DELETE FROM token_blacklist WHERE expires_at < ?").run(Date.now());
+
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -101,10 +107,12 @@ app.get("/auth/profile", (req, res) => {
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
   const token = authHeader.split(" ")[1];
-  if (blacklist.has(token)) return res.status(401).json({ error: "Token expired" });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const isBlacklisted = db.prepare("SELECT 1 FROM token_blacklist WHERE token = ?").get(token);
+    if (isBlacklisted) return res.status(401).json({ error: "Token expired" });
+
     const row = db.prepare("SELECT username,email FROM users WHERE email = ?").get(decoded.email);
     res.json(row);
   } catch (err) {
@@ -118,8 +126,16 @@ app.post("/auth/logout", (req, res) => {
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
   const token = authHeader.split(" ")[1];
-  blacklist.add(token);
-  res.json({ message: "Logged out" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const expiresAt = Number(decoded.exp) * 1000;
+    db.prepare("INSERT OR REPLACE INTO token_blacklist (token, expires_at) VALUES (?, ?)")
+      .run(token, expiresAt);
+    res.json({ message: "Logged out" });
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
+  }
 });
 
 module.exports = app;
