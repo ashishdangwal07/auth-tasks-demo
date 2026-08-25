@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "node ./node_modules/mocha/bin/mocha \"test/\""
   },
   "keywords": [],
   "type": "commonjs",
@@ -14,10 +15,11 @@
     "supertest": "^7.2.2"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.5"

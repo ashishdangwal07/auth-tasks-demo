@@ -1,9 +1,14 @@
 ﻿require("dotenv").config();
 const express = require("express");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator");
 const Database = require("better-sqlite3");
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is required. Set it in a .env file before starting the server.");
+}
 
 const app = express();
 app.use(express.json());
@@ -33,11 +38,26 @@ db.prepare(`
   )
 `).run();
 
-const blacklist = [];
+// Known limitation: this in-memory blacklist resets on server restart.
+// In production, use Redis or a database table with TTL expiration.
+const blacklist = new Set();
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." },
+  keyGenerator: (req) => ipKeyGenerator(req) || "unknown-ip",
+});
 
 // REGISTER
 app.post("/auth/register",
-  [ body("email").isEmail(), body("password").isLength({ min: 6 }) ],
+  authRateLimiter,
+  [
+    body("username").trim().notEmpty().withMessage("Username is required").isLength({ min: 3, max: 30 }).withMessage("Username must be between 3 and 30 characters"),
+    body("email").isEmail(),
+    body("password").isLength({ min: 6 })
+  ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
@@ -63,7 +83,7 @@ app.post("/auth/register",
 );
 
 // LOGIN
-app.post("/auth/login", async (req, res) => {
+app.post("/auth/login", authRateLimiter, async (req, res) => {
   const { email, password } = req.body;
   const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
   if (!row) return res.status(401).json({ error: "Invalid credentials" });
@@ -71,7 +91,7 @@ app.post("/auth/login", async (req, res) => {
   const match = await bcrypt.compare(password, row.password_hash);
   if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign({ email: row.email }, process.env.JWT_SECRET || "devsecret", { expiresIn: "1h" });
+  const token = jwt.sign({ email: row.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
   res.json({ token });
 });
 
@@ -81,10 +101,10 @@ app.get("/auth/profile", (req, res) => {
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
   const token = authHeader.split(" ")[1];
-  if (blacklist.includes(token)) return res.status(401).json({ error: "Token expired" });
+  if (blacklist.has(token)) return res.status(401).json({ error: "Token expired" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "devsecret");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const row = db.prepare("SELECT username,email FROM users WHERE email = ?").get(decoded.email);
     res.json(row);
   } catch (err) {
@@ -98,7 +118,7 @@ app.post("/auth/logout", (req, res) => {
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
   const token = authHeader.split(" ")[1];
-  blacklist.push(token);
+  blacklist.add(token);
   res.json({ message: "Logged out" });
 });
 
