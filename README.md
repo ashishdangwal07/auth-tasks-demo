@@ -3,6 +3,7 @@
 ![GitHub stars](https://img.shields.io/github/stars/ashishdangwal07/auth-tasks-demo?style=social)
 ![GitHub license](https://img.shields.io/github/license/ashishdangwal07/auth-tasks-demo)
 ![npm version](https://img.shields.io/badge/npm-v10.0.0-blue)
+![Tests](https://github.com/ashishdangwal07/auth-tasks-demo/actions/workflows/test.yml/badge.svg)
 
 ## 📌 Overview
 Ye project ek simple **authentication system** aur **background task queue** dikhata hai.  
