@@ -10,7 +10,7 @@ Ye project ek simple **authentication system** aur **background task queue** dik
 User register hone ke baad tasks enqueue hote hain aur ek worker script unhe process karta hai.
 
 ## 🌐 Live Demo
-https://auth-tasks-demo.onrender.com
+https://auth-tasks-demo-1.onrender.com
 
 The root URL returns a JSON status response confirming the API is running, not a webpage. Test the POST/GET API routes with curl or Postman.
 
