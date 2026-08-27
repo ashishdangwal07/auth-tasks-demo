@@ -11,6 +11,8 @@ User register hone ke baad tasks enqueue hote hain aur ek worker script unhe pro
 ## 🌐 Live Demo
 https://auth-tasks-demo.onrender.com
 
+The root URL returns a JSON status response confirming the API is running, not a webpage. Test the POST/GET API routes with curl or Postman.
+
 Note: free tier — first request may take 30-50 seconds if the service was idle.
 
 
